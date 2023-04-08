@@ -9,8 +9,34 @@ set :bind, "0.0.0.0"
 set :port, 4567
 
 def fetch_and_parse(url)
-  response = Typhoeus.get(url, headers: { 'Content-Type' => 'application/json' })
+  response = Typhoeus.get(url, headers: { "Content-Type" => "application/json" })
   JSON.parse(response.body, symbolize_names: true)[:resultSet]
+end
+
+def format_time(time)
+  diff = time - Time.now
+
+  return "Now" if diff.negative?
+
+  distance_of_time_in_words(Time.now, time, accumulate_on: :minutes, only: :minutes)
+end
+
+def build_arrivals(house, downtown)
+  house[:arrival].map do |arrival|
+    scheduled_time = Time.at(arrival[:scheduled] / 1000)
+    estimated_time = Time.at(arrival[:estimated] / 1000)
+    downtown_arrival = downtown[:arrival].find { |b| b[:tripID] == arrival[:tripID] }
+
+    {
+      busType: arrival[:vehicleID] ? "Normal" : "Bendy",
+      vehicleID: arrival[:vehicleID],
+      scheduled: scheduled_time.strftime("%I:%M:%S %p"),
+      scheduled_pretty: format_time(scheduled_time),
+      estimated: scheduled_time.strftime("%I:%M:%S %p"),
+      estimated_pretty: format_time(estimated_time),
+      completion: downtown_arrival ? Time.at(downtown_arrival[:scheduled] / 1000).strftime("%I:%M %p") : "unknown",
+    }
+  end
 end
 
 get "/" do
@@ -25,23 +51,10 @@ get "/" do
   house = fetch_and_parse(house_stop)
   downtown = fetch_and_parse(downtown_stop)
 
-  arrivals = house[:arrival].map do |arrival|
-    scheduled_time = Time.at(arrival[:scheduled] / 1000)
-    downtown_arrival = downtown[:arrival].find { |b| b[:tripID] == arrival[:tripID] }
-
-    {
-      busType: arrival[:vehicleID] ? "Normal" : "Bendy",
-      vehicleID: arrival[:vehicleID],
-      distanceAway: scheduled_time - Time.now,
-      scheduled: distance_of_time_in_words(Time.now, scheduled_time, accumulate_on: :minutes, only: :minutes),
-      completion: downtown_arrival ? Time.at(downtown_arrival[:scheduled] / 1000).strftime("%I:%M %p") : "unknown",
-    }
-  end
+  arrivals = build_arrivals(house, downtown)
 
   {
     warning: house[:detour]&.map { |x| x[:desc] }&.join(" "),
-    arrivals: arrivals.sort_by { |s| s[:distanceAway] },
-    house: house,
-    downtown: downtown,
+    arrivals: arrivals,
   }.to_json
 end
