@@ -5,6 +5,10 @@ require "typhoeus"
 
 include DOTIW::Methods
 
+BOARDING_STOP_ID = 9425
+DESTINATION_STOP_ID = 11486
+COMMUTE_DURATION = 40
+
 set :bind, "0.0.0.0"
 set :port, 4567
 
@@ -42,11 +46,11 @@ end
 get "/" do
   content_type :json
 
-  house_stop = "https://developer.trimet.org/ws/v2/arrivals?appID=CAA77C07258E653CA04AADC6B&locIds=9425"
+  base_url = "https://developer.trimet.org/ws/v2/arrivals?appID=CAA77C07258E653CA04AADC6B"
+  house_stop = "#{base_url}&locIds=#{BOARDING_STOP_ID}"
 
-  time_start = Time.now + (40 * 60)
-  time_end = Time.now + (80 * 60)
-  downtown_stop = "https://developer.trimet.org/ws/v2/arrivals?appID=CAA77C07258E653CA04AADC6B&locIds=11486&begin=#{time_start.to_i}&end=#{time_end.to_i}"
+  time_end = Time.now + ((COMMUTE_DURATION * 2) * 60)
+  downtown_stop = "#{base_url}&locIds=#{DESTINATION_STOP_ID}&begin=#{Time.now.to_i}&end=#{time_end.to_i}"
 
   house = fetch_and_parse(house_stop)
   downtown = fetch_and_parse(downtown_stop)
