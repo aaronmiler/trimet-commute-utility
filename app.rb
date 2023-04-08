@@ -9,6 +9,8 @@ BOARDING_STOP_ID = 9425
 DESTINATION_STOP_ID = 11486
 COMMUTE_DURATION = 40
 
+ENV['TZ'] = 'America/Los_Angeles'
+
 set :bind, "0.0.0.0"
 set :port, 4567
 
