@@ -30,7 +30,7 @@ end
 def build_arrivals(house, downtown)
   house[:arrival].map do |arrival|
     scheduled_time = Time.at(arrival[:scheduled] / 1000)
-    estimated_time = Time.at(arrival[:estimated] / 1000)
+    estimated_time = Time.at((arrival[:estimated] || arrival[:scheduled]) / 1000)
     downtown_arrival = downtown[:arrival].find { |b| b[:tripID] == arrival[:tripID] }
 
     {
